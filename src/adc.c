@@ -1,4 +1,4 @@
-#include "adc.h"
+#include <adc.h>
 #include <avr/io.h>
 
 void n_adc_enable_ex(double max_adc_speed, double cpu)
@@ -24,7 +24,7 @@ void n_adc_begin_read(n_adc_pin_t pin)
     ADCSRA |= (1 << ADSC);
 }
 
-bool n_adc_in_progress()
+int n_adc_in_progress()
 {
     return ADCSRA & (1 << ADSC);
 }
