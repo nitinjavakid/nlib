@@ -15,3 +15,12 @@ typedef enum n_adc_pin {
     N_ADC6,
     N_ADC7
 } n_adc_pin_t;
+
+typedef enum n_usart_bits {
+    N_USART_5BIT = 0x0,
+    N_USART_6BIT = 0x1,
+    N_USART_7BIT = 0x2,
+    N_USART_8BIT = 0x3,
+    N_USART_RESERVED = 0x4,
+    N_USART_9BIT = 0x7
+} n_usart_bits_t;

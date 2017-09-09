@@ -25,8 +25,10 @@ set(CMAKE_CXX_FLAGS "${CXXFLAGS}")
 set(CMAKE_ASM_FLAGS "${CFLAGS}")
 
 include_directories("include")
-add_library(adc.${MCU} "src/adc.c")
-target_include_directories(adc.${MCU} PUBLIC INTERFACE include)
-
-install(TARGETS adc.${MCU} ARCHIVE DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include FILES_MATCHING PATTERN *.h)
+
+add_library(adc.${MCU} "src/adc.c")
+install(TARGETS adc.${MCU} ARCHIVE DESTINATION lib)
+
+add_library(usart.${MCU} "src/usart.c")
+install(TARGETS usart.${MCU} ARCHIVE DESTINATION lib)
