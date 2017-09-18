@@ -2,6 +2,7 @@
 #include <avr/power.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
+#include <avr/interrupt.h>
 
 void n_delay_wait(int seconds, n_delay_sleep_mode_t mode)
 {
