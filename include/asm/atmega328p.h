@@ -24,3 +24,12 @@ typedef enum n_usart_bits {
     N_USART_RESERVED = 0x4,
     N_USART_9BIT = 0x7
 } n_usart_bits_t;
+
+typedef enum n_delay_sleep_mode {
+    N_DELAY_IDLE,
+    N_DELAY_ADC_NR,
+    N_DELAY_POWER_DOWN,
+    N_DELAY_POWER_SAVE,
+    N_DELAY_STANDBY = 0x6,
+    N_DELAY_EXTENDED_STANDBY = 0x7
+} n_delay_sleep_mode_t;

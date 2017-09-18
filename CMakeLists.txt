@@ -32,3 +32,6 @@ install(TARGETS adc.${MCU} ARCHIVE DESTINATION lib)
 
 add_library(usart.${MCU} "src/usart.c")
 install(TARGETS usart.${MCU} ARCHIVE DESTINATION lib)
+
+add_library(delay.${MCU} "src/delay.c")
+install(TARGETS delay.${MCU} ARCHIVE DESTINATION lib)
