@@ -11,7 +11,7 @@ void n_adc_enable_ex(double max_adc_speed, double cpu)
         --prescalar;
     }
 
-    ADCSRA |= (1 << ADEN) | ((prescalar + 1) & 0x7);
+    ADCSRA = (1 << ADEN) | ((prescalar + 1) & 0x7);
 }
 
 void n_adc_disable()
@@ -21,6 +21,7 @@ void n_adc_disable()
 
 void n_adc_begin_read(n_adc_pin_t pin)
 {
+    ADMUX = (ADMUX & 0xf0) | (pin & 0x0f);
     ADCSRA |= (1 << ADSC);
 }
 
@@ -31,7 +32,7 @@ int n_adc_in_progress()
 
 int n_adc_end_read()
 {
-    return (ADCH << 8) | ADCL;
+    return ADC;
 }
 
 int n_adc_read(n_adc_pin_t pin)
@@ -43,7 +44,7 @@ int n_adc_read(n_adc_pin_t pin)
 
 void n_adc_set_ref(n_adc_ref_t ref)
 {
-    ADMUX |= (ref << 6);
+    ADMUX = (ref << 6) | (ADMUX & 0x3f);
 }
 
 n_adc_ref_t n_adc_get_ref()
