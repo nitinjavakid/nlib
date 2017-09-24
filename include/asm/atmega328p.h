@@ -25,11 +25,22 @@ typedef enum n_usart_bits {
     N_USART_9BIT = 0x7
 } n_usart_bits_t;
 
+typedef enum n_usart_parity {
+    N_USART_PARITY_NONE = 0x0,
+    N_USART_PARITY_EVEN = 0x2,
+    N_USART_PARITY_ODD  = 0x3
+} n_usart_parity_t;
+
+typedef enum n_usart_stopbit {
+    N_USART_STOPBIT1 = 0x0,
+    N_USART_STOPBIT2 = 0x1,
+} n_usart_stopbit_t;
+
 typedef enum n_delay_sleep_mode {
-    N_DELAY_IDLE,
-    N_DELAY_ADC_NR,
-    N_DELAY_POWER_DOWN,
-    N_DELAY_POWER_SAVE,
-    N_DELAY_STANDBY = 0x6,
-    N_DELAY_EXTENDED_STANDBY = 0x7
+    N_DELAY_IDLE = SLEEP_MODE_IDLE,
+    N_DELAY_ADC_NR = SLEEP_MODE_ADC,
+    N_DELAY_POWER_DOWN = SLEEP_MODE_PWR_DOWN,
+    N_DELAY_POWER_SAVE = SLEEP_MODE_PWR_SAVE,
+    N_DELAY_STANDBY = SLEEP_MODE_STANDBY,
+    N_DELAY_EXTENDED_STANDBY = SLEEP_MODE_EXT_STANDBY
 } n_delay_sleep_mode_t;
