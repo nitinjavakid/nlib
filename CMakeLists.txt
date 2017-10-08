@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.0.2)
 project (nlib)
 
+set(LINKER_LANGUAGE CXX)
+
 set(AVRCPP   avr-g++)
 set(AVRC     avr-gcc)
 set(AVRSTRIP avr-strip)
@@ -30,8 +32,17 @@ install(DIRECTORY include/ DESTINATION include FILES_MATCHING PATTERN *.h)
 add_library(adc.${MCU} "src/adc.c")
 install(TARGETS adc.${MCU} ARCHIVE DESTINATION lib)
 
-add_library(usart.${MCU} "src/usart.c")
+add_library(usart.${MCU} "src/usart.cpp")
 install(TARGETS usart.${MCU} ARCHIVE DESTINATION lib)
 
 add_library(delay.${MCU} "src/delay.c")
 install(TARGETS delay.${MCU} ARCHIVE DESTINATION lib)
+
+add_library(io.${MCU} "src/io.cpp")
+install(TARGETS io.${MCU} ARCHIVE DESTINATION lib)
+
+add_library(wifi.${MCU} "src/wifi.cpp")
+install(TARGETS wifi.${MCU} ARCHIVE DESTINATION lib)
+
+add_library(memory.${MCU} "src/memory.cpp")
+install(TARGETS memory.${MCU} ARCHIVE DESTINATION lib)
