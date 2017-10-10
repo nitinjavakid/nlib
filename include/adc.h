@@ -5,6 +5,11 @@
 
 #define     n_adc_enable(x) n_adc_enable_ex(x, F_CPU)
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 void        n_adc_disable();
 void        n_adc_begin_read(n_adc_pin_t pin);
 int         n_adc_in_progress();
@@ -15,5 +20,9 @@ n_adc_ref_t n_adc_get_ref();
 
 // Internal functions
 void        n_adc_enable_ex(double prescalar, double cpu);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

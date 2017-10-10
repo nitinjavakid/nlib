@@ -17,13 +17,13 @@ extern "C"
 {
 #endif
 
-    void    n_usart_enable_ex(n_usart_bits_t bits, n_usart_parity_t parity, n_usart_stopbit_t stopbit, int baudrate, double cpuspeed);
+    void    n_usart_enable_ex(n_usart_bits_t bits, n_usart_parity_t parity, n_usart_stopbit_t stopbit, uint32_t baudrate, double cpuspeed);
 
     void    n_usart_disable();
     void    n_usart_write(uint8_t byte);
     uint8_t n_usart_read();
 
-    n_io_handle_t n_usart_new_io();
+    n_io_handle_t n_usart_new_io(size_t buffer_size);
 
 #ifdef __cplusplus
 }

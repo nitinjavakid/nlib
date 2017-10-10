@@ -60,8 +60,58 @@ extern "C"
         str = (char *) calloc(len + 1, 1);
         len = vsnprintf(str, len + 1, fmt, ap);
         va_end(ap);
-        n_io_write(handle, str, len);
+        n_io_write(handle, str, len + 1);
         free(str);
+    }
+
+    char *n_io_readline(n_io_handle_t handle, char *buffer, size_t size)
+    {
+        if(!handle)
+        {
+            return NULL;
+        }
+
+        bool internal = false;
+        if(buffer == NULL)
+        {
+            internal = true;
+            buffer = (char *) malloc(50);
+            size = 50;
+        }
+
+        int idx = 0;
+        char ch;
+
+        while((ch = n_io_getch(handle)) != '\n')
+        {
+            buffer[idx++] = ch;
+
+            if(idx == size - 1)
+            {
+                if(internal)
+                {
+                    char *rbuffer = (char *) realloc(buffer, size + 10);
+                    if(rbuffer == NULL)
+                    {
+                        break;
+                    }
+                    buffer = rbuffer;
+                    size += 10;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        if(idx < size - 1)
+        {
+            buffer[idx++] = '\n';
+        }
+
+        buffer[idx] = '\0';
+        return buffer;
     }
 
     int n_io_close(n_io_handle_t handle)

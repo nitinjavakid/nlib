@@ -29,3 +29,15 @@ void n_delay_wait(int seconds, n_delay_sleep_mode_t mode)
         sei();
     }
 }
+
+void n_delay_sleep(n_delay_sleep_mode_t mode)
+{
+    set_sleep_mode(mode);
+    cli();
+    sleep_enable();
+    sleep_bod_disable();
+    sei();
+    sleep_cpu();
+    sleep_disable();
+    sei();
+}
