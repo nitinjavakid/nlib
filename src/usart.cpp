@@ -26,14 +26,25 @@
 #include <buffer.h>
 
 static Buffer *buffer = NULL;
+static void (*on_recv)(int, void *) = NULL;
+static void *on_recv_data = NULL;
 
 ISR(USART_RX_vect)
 {
-    int byte = n_usart_read();
-
-    if(buffer)
+    int byte;
+    while(UCSR0A&(1<<RXC0))
     {
-        buffer->putch(byte);
+        byte = n_usart_read();
+
+        if(buffer)
+        {
+            buffer->putch(byte);
+        }
+
+        if(on_recv)
+        {
+            on_recv(byte, on_recv_data);
+        }
     }
 }
 
@@ -71,7 +82,7 @@ public:
         n_usart_write(val);
     }
 
-    int read(void *buffer, size_t size)
+    size_t read(void *buffer, size_t size)
     {
         size_t idx = 0;
         char *chbuffer = (char *) buffer;
@@ -83,7 +94,7 @@ public:
         return size;
     }
 
-    int write(const void *buffer, size_t size)
+    size_t write(const void *buffer, size_t size)
     {
         const char *chbuffer = (char *) buffer;
         for(size_t i=0; i < size; i++)
@@ -98,6 +109,12 @@ public:
         cli();
         delete buffer;
         sei();
+    }
+
+    int on_recv(void (*func)(int, void *), void *data)
+    {
+        ::on_recv = func;
+        on_recv_data = data;
     }
 
     ~USARTIo()

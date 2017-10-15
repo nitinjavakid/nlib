@@ -46,7 +46,7 @@ extern "C"
         impl->write(val);
     }
 
-    int n_io_read(n_io_handle_t handle, void *buffer, size_t size)
+    size_t n_io_read(n_io_handle_t handle, void *buffer, size_t size)
     {
         if(!handle)
         {
@@ -57,7 +57,7 @@ extern "C"
         return impl->read(buffer, size);
     }
 
-    int n_io_write(n_io_handle_t handle, const void *buffer, size_t size)
+    size_t n_io_write(n_io_handle_t handle, const void *buffer, size_t size)
     {
         if(!handle)
         {
@@ -68,19 +68,23 @@ extern "C"
         return impl->write(buffer, size);
     }
 
-    void n_io_printf(n_io_handle_t handle, const char *fmt, ...)
+    void n_io_vsprintf(n_io_handle_t handle, const char *fmt, va_list ap)
     {
         char *str = NULL;
         int len = 0;
-        int idx = 0;
-        va_list ap;
-        va_start(ap, fmt);
         len = vsnprintf(NULL, 0, fmt, ap);
         str = (char *) calloc(len + 1, 1);
         len = vsnprintf(str, len + 1, fmt, ap);
-        va_end(ap);
         n_io_write(handle, str, len + 1);
         free(str);
+    }
+
+    void n_io_printf(n_io_handle_t handle, const char *fmt, ...)
+    {
+        va_list ap;
+        va_start(ap, fmt);
+        n_io_vsprintf(handle, fmt, ap);
+        va_end(ap);
     }
 
     char *n_io_readline(n_io_handle_t handle, char *buffer, size_t size)
@@ -144,5 +148,16 @@ extern "C"
         int retval = impl->close();
         delete impl;
         return retval;
+    }
+
+    int n_io_on_recv(n_io_handle_t handle, void (*function)(int ch, void *), void *data)
+    {
+        if(!handle)
+        {
+            return -1;
+        }
+
+        IOImpl *impl = static_cast<IOImpl *>(handle);
+        return impl->on_recv(function, data);
     }
 }

@@ -20,7 +20,7 @@ set(COPT "-Os")
 set(CMCU "-mmcu=${MCU}")
 
 set(CFLAGS   "${CMCU} ${COPT}")
-set(CXXFLAGS "${CMCU} ${COPT}")
+set(CXXFLAGS "${CMCU} ${COPT} -std=c++11")
 
 set(CMAKE_C_FLAGS   "${CFLAGS}")
 set(CMAKE_CXX_FLAGS "${CXXFLAGS}")

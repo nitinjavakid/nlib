@@ -55,6 +55,17 @@ extern "C"
         return impl->set_mode(mode);
     }
 
+    int n_wifi_get_mode(n_wifi_t hnd, n_wifi_mode_t *mode)
+    {
+        if(!hnd || !mode)
+        {
+            return -1;
+        }
+
+        WIFIImpl *impl = static_cast<WIFIImpl *>(hnd);
+        return impl->get_mode(mode);
+    }
+
     int n_wifi_connect(n_wifi_t hnd, const char *endpoint, const char *password)
     {
         if(!hnd)
@@ -66,7 +77,18 @@ extern "C"
         return impl->connect(endpoint, password);
     }
 
-    n_io_handle_t n_wifi_open_io(n_wifi_t hnd, const char *ipaddress, int port)
+    int n_wifi_set_network(n_wifi_t hnd, const char *ip, const char *gateway, const char *netmask)
+    {
+        if(!hnd)
+        {
+            return -1;
+        }
+
+        WIFIImpl *impl = static_cast<WIFIImpl *>(hnd);
+        return impl->set_network(ip, gateway, netmask);
+    }
+
+    n_io_handle_t n_wifi_open_io(n_wifi_t hnd, n_wifi_io_type_t type, const char *ipaddress, int port)
     {
         if(!hnd)
         {
@@ -74,7 +96,7 @@ extern "C"
         }
 
         WIFIImpl *impl = static_cast<WIFIImpl *>(hnd);
-        return impl->open_io(ipaddress, port);
+        return impl->open_io(type, ipaddress, port);
     }
 
     int n_wifi_close(n_wifi_t hnd)
@@ -88,5 +110,27 @@ extern "C"
         int retval = impl->close();
         delete impl;
         return retval;
+    }
+
+    int n_wifi_get_ap_nodes(n_wifi_t hnd, n_wifi_ap_node_t **nodes)
+    {
+        if(!hnd)
+        {
+            return -1;
+        }
+
+        WIFIImpl *impl = static_cast<WIFIImpl *>(hnd);
+        return impl->get_ap_nodes(nodes);
+    }
+
+    int n_wifi_free_ap_nodes(n_wifi_t hnd, n_wifi_ap_node_t *nodes)
+    {
+        if(!hnd)
+        {
+            return -1;
+        }
+
+        WIFIImpl *impl = static_cast<WIFIImpl *>(hnd);
+        return impl->free_ap_nodes(nodes);
     }
 }

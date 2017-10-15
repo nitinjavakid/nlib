@@ -20,14 +20,20 @@
 #ifndef N_WIFI_IMPL_H
 #define N_WIFI_IMPL_H
 
+#include <wifi.h>
+
 class WIFIImpl
 {
 public:
     virtual int status() = 0;
     virtual int restart() = 0;
     virtual int set_mode(n_wifi_mode_t) = 0;
+    virtual int get_mode(n_wifi_mode_t *) = 0;
     virtual int connect(const char *, const char *) = 0;
-    virtual n_io_handle_t open_io(const char *, int) = 0;
+    virtual int set_network(const char *, const char *, const char *) = 0;
+    virtual n_io_handle_t open_io(n_wifi_io_type_t, const char *, int) = 0;
+    virtual int get_ap_nodes(n_wifi_ap_node_t **nodes) = 0;
+    virtual int free_ap_nodes(n_wifi_ap_node_t *nodes) = 0;
     virtual int close() = 0;
     virtual ~WIFIImpl()
     {
