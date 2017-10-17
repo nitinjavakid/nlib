@@ -47,6 +47,9 @@ install(TARGETS wifi.${MCU} ARCHIVE DESTINATION lib)
 add_library(memory.${MCU} "src/memory.cpp")
 install(TARGETS memory.${MCU} ARCHIVE DESTINATION lib)
 
+add_library(twi.${MCU} "src/twi.cpp")
+install(TARGETS twi.${MCU} ARCHIVE DESTINATION lib)
+
 #wifi drivers
 add_library(esp8266.${MCU} "src/esp8266.cpp")
 install(TARGETS esp8266.${MCU} ARCHIVE DESTINATION lib)

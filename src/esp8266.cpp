@@ -69,7 +69,6 @@ public:
     int restart()
     {
         int retval = 0;
-        n_io_printf("\r\n");
         if((retval = exec(NULL, NULL, "AT+RST\r\n")) != 0)
         {
             return retval;

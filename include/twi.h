@@ -17,23 +17,22 @@
  * along with Foobar.  If not, see <http://www.gnu.org/licenses/>
  */
 
-#ifndef N_IO_IMPL_H
-#define N_IO_IMPL_H
+#ifndef N_TWI_H
+#define N_TWI_H
 
-#include <stdlib.h>
+#include "config.h"
+#include "io.h"
 
-class IOImpl
+#ifdef __cplusplus
+extern "C"
 {
-public:
-    virtual char   read() = 0;
-    virtual void   write(char) = 0;
-    virtual size_t read(void *buffer, size_t size) = 0;
-    virtual size_t write(const void *buffer, size_t size) = 0;
-    virtual int    close() = 0;
-    virtual int    on_recv(void (*)(int, void *), void *) = 0;
-    virtual ~IOImpl()
-    {
-    }
-};
+#endif
+
+    // Not to be used, design not complete
+    n_io_handle_t n_twi_new_slave_io(uint8_t address, size_t buffer_size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
