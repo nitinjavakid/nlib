@@ -23,6 +23,7 @@
 #include <io_impl.h>
 #include <string.h>
 #include <buffer.h>
+#include <debug.h>
 
 class ESP8266Wifi;
 
@@ -56,7 +57,7 @@ public:
         : usart_handle(handle)
     {
         auto recv_handler = [](int ch, void *data) -> void {
-            
+            N_DEBUG("Got %c", (char) ch);
         };
         n_io_on_recv(usart_handle, recv_handler, this);
     }

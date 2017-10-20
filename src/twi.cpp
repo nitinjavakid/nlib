@@ -25,6 +25,8 @@
 #include <buffer.h>
 #include <avr/power.h>
 #include <delay.h>
+#include <math.h>
+#include <debug.h>
 
 static Buffer *buffer = NULL;
 static void (*on_recv)(int, void *) = NULL;
@@ -32,7 +34,7 @@ static void *on_recv_data = NULL;
 
 ISR(TWI_vect)
 {
-    uint8_t status = TWSR & 0xFC; // mask-out the prescaler bits
+    uint8_t status = TWSR & 0xF8; // mask-out the prescaler bits
     switch(status)
     {
     case TW_SR_DATA_ACK: // data received, ACK returned
@@ -66,18 +68,18 @@ public:
     char read()
     {
         char retval;
-        cli();
-        TWAR = address << 1;
-        TWCR = (1 << TWEA) | (1 << TWEN) | (1 << TWIE);
-        sei();
 
+        cli();
         while(!buffer->available())
         {
+            TWAR = address << 1;
+            TWCR = (1 << TWEA) | (1 << TWEN) | (1 << TWIE);
+
             power_twi_enable();
             n_delay_sleep(N_DELAY_IDLE);
+            cli();
         }
 
-        cli();
         if(buffer->available())
         {
             retval = buffer->getch();
@@ -122,6 +124,110 @@ public:
 
     ~TWISlaveIo()
     {
+        close();
+    }
+};
+
+class TWIMasterIo : public IOImpl
+{
+private:
+    uint8_t address;
+public:
+    TWIMasterIo(uint8_t addr, double cpuspeed, double scl)
+        : address(addr)
+    {
+        uint8_t prescalar = 0;
+        uint8_t twbr = round((((cpuspeed / scl) / pow(4, prescalar)) - 16 ) / 2);
+        TWCR = 0;
+        TWBR = twbr;
+        TWSR = (TWSR & 0xF8) | (prescalar & 0x3);
+    }
+
+    char read()
+    {
+        return -1;
+    }
+
+    void start()
+    {
+        uint8_t status = 0;
+    retry:
+        TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
+        while(!(TWCR & (1 << TWINT)));
+
+        status = (TWSR & 0xF8);
+        if(status == TW_MT_ARB_LOST) goto retry;
+
+        if((status != TW_START) && (status != TW_REP_START))
+            return;
+
+        TWDR = (address << 1) | TW_WRITE;
+        TWCR = (1 << TWINT) | (1 << TWEN);
+
+        while(!(TWCR & (1 << TWINT)));
+
+        status = (TWSR & 0xF8);
+        if((status == TW_MT_ARB_LOST) || (status == TW_MT_SLA_NACK)) goto retry;
+
+        if(status != TW_MT_SLA_ACK)
+            return;
+    }
+
+    void stop()
+    {
+        TWCR = (1 << TWINT)| (1 << TWEN)|(1 << TWSTO);
+    }
+
+    void internalWrite(char val)
+    {
+        TWDR = val;
+        TWCR = (1 << TWINT) | (1 << TWEN);
+
+        while (!(TWCR & (1 << TWINT)));
+
+        if ((TWSR & 0xF8) != TW_MT_DATA_ACK)
+            return;
+    }
+
+    void write(char val)
+    {
+        cli();
+        start();
+
+        internalWrite(val);
+
+        stop();
+        sei();
+    }
+
+    size_t read(void *buffer, size_t size)
+    {
+        return -1;
+    }
+
+    size_t write(const void *buffer, size_t size)
+    {
+        cli();
+        start();
+        for(size_t i = 0; i < size; ++i)
+        {
+            internalWrite(((char *)buffer)[i]);
+        }
+        stop();
+        sei();
+        return size;
+    }
+
+    int close()
+    {
+    }
+
+    int on_recv(void (*func)(int, void *), void *data)
+    {
+    }
+
+    ~TWIMasterIo()
+    {
     }
 };
 
@@ -130,5 +236,10 @@ extern "C"
     n_io_handle_t n_twi_new_slave_io(uint8_t address, size_t buffer_size)
     {
         return new TWISlaveIo(address, buffer_size);
+    }
+
+    n_io_handle_t n_twi_new_master_io(uint8_t address, double cpuspeed, double scl)
+    {
+        return new TWIMasterIo(address, cpuspeed, scl);
     }
 }

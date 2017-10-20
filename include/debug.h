@@ -17,21 +17,24 @@
  * along with Foobar.  If not, see <http://www.gnu.org/licenses/>
  */
 
-#ifndef N_TWI_H
-#define N_TWI_H
+#ifndef N_DEBUG_H
+#define N_DEBUG_H
 
-#include "config.h"
-#include "io.h"
+#include <io.h>
+
+#ifdef DEBUG
+#define N_DEBUG(fmt, ...) n_debug_printf("nlib: " fmt "\r\n", ##__VA_ARGS__)
+#else
+#define N_DEBUG(fmt, ...) do { } while(0)
+#endif
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    // Not to be used, design not complete
-    n_io_handle_t n_twi_new_slave_io(uint8_t address, size_t buffer_size);
-
-    n_io_handle_t n_twi_new_master_io(uint8_t address, double cpuspeed, double scl);
+    void n_debug_printf(const char *fmt, ...);
+    void n_debug_init(n_io_handle_t);
 
 #ifdef __cplusplus
 }

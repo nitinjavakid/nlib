@@ -16,7 +16,7 @@ set(CMAKE_CXX_COMPILER ${AVRCPP})
 set(CMAKE_C_COMPILER   ${AVRC})
 set(CMAKE_ASM_COMPILER ${AVRC})
 
-set(COPT "-Os")
+set(COPT "-Os ${COPT}")
 set(CMCU "-mmcu=${MCU}")
 
 set(CFLAGS   "${CMCU} ${COPT}")
@@ -49,6 +49,9 @@ install(TARGETS memory.${MCU} ARCHIVE DESTINATION lib)
 
 add_library(twi.${MCU} "src/twi.cpp")
 install(TARGETS twi.${MCU} ARCHIVE DESTINATION lib)
+
+add_library(debug.${MCU} "src/debug.cpp")
+install(TARGETS debug.${MCU} ARCHIVE DESTINATION lib)
 
 #wifi drivers
 add_library(esp8266.${MCU} "src/esp8266.cpp")

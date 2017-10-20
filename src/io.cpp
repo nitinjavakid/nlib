@@ -75,7 +75,7 @@ extern "C"
         len = vsnprintf(NULL, 0, fmt, ap);
         str = (char *) calloc(len + 1, 1);
         len = vsnprintf(str, len + 1, fmt, ap);
-        n_io_write(handle, str, len + 1);
+        n_io_write(handle, str, len);
         free(str);
     }
 

@@ -17,24 +17,25 @@
  * along with Foobar.  If not, see <http://www.gnu.org/licenses/>
  */
 
-#ifndef N_TWI_H
-#define N_TWI_H
+#include <debug.h>
+#include <stdarg.h>
 
-#include "config.h"
-#include "io.h"
+static volatile n_io_handle_t handle = NULL;
 
-#ifdef __cplusplus
 extern "C"
 {
-#endif
+    void n_debug_init(n_io_handle_t hdl)
+    {
+        handle = hdl;
+    }
 
-    // Not to be used, design not complete
-    n_io_handle_t n_twi_new_slave_io(uint8_t address, size_t buffer_size);
+    void n_debug_printf(const char *fmt, ...)
+    {
+        if(handle == NULL) return;
 
-    n_io_handle_t n_twi_new_master_io(uint8_t address, double cpuspeed, double scl);
-
-#ifdef __cplusplus
+        va_list va;
+        va_start(va, fmt);
+        n_io_vsprintf(handle, fmt, va);
+        va_end(va);
+    }
 }
-#endif
-
-#endif
