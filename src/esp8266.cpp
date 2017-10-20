@@ -57,7 +57,7 @@ public:
         : usart_handle(handle)
     {
         auto recv_handler = [](int ch, void *data) -> void {
-            N_DEBUG("Got %c", (char) ch);
+            //            N_DEBUG("Got %d", ch);
         };
         n_io_on_recv(usart_handle, recv_handler, this);
     }
@@ -75,16 +75,13 @@ public:
             return retval;
         }
 
-        if((retval = exec(NULL, NULL, "AT+CIPMUX=1\r\n")) != 0)
-        {
-            return retval;
-        }
         exec(NULL, NULL, "AT\r\n");
     }
 
     int set_mode(n_wifi_mode_t mode)
     {
         int modeint = 0;
+        int retval = 0;
         switch(mode)
         {
         case N_WIFI_MODE_STA:
@@ -97,7 +94,13 @@ public:
             modeint = 3;
             break;
         }
-        return exec(NULL, NULL, "AT+CWMODE=%d\r\n", modeint);
+
+        if((retval = exec(NULL, NULL, "AT+CWMODE=%d\r\n", modeint)) != 0)
+        {
+            return retval;
+        }
+
+        return exec(NULL, NULL, "AT+CIPMUX=1\r\n");
     }
 
     int get_mode(n_wifi_mode_t *mode);
@@ -165,6 +168,7 @@ int ESP8266Wifi::exec(collector_t callback, void *data, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
+    N_VDEBUG(fmt, ap);
     n_io_vsprintf(usart_handle, fmt, ap);
     va_end(ap);
 
@@ -314,6 +318,7 @@ size_t ESP8266Io::write(const void *buffer, size_t size)
             {
                 char buffer[50];
                 n_io_readline(module->usart_handle, buffer, sizeof(buffer));
+                N_DEBUG("send: #%s$", buffer);
                 if(strncmp(buffer, "SEND OK", 7) == 0)
                 {
                     return size;

@@ -55,6 +55,13 @@ typedef enum n_usart_stopbit {
     N_USART_STOPBIT2 = 0x1,
 } n_usart_stopbit_t;
 
+typedef enum n_usart_mode {
+    N_USART_MODE_ASYNC = 0x0,
+    N_USART_MODE_SYNC = 0x1,
+    N_USART_MODE_RESERVED = 0x2,
+    N_USART_MODE_SPI = 0x3
+} n_usart_mode_t;
+
 typedef enum n_delay_sleep_mode {
     N_DELAY_IDLE = SLEEP_MODE_IDLE,
     N_DELAY_ADC_NR = SLEEP_MODE_ADC,

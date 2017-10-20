@@ -24,6 +24,7 @@
 #include <delay.h>
 #include <math.h>
 #include <buffer.h>
+#include <debug.h>
 
 static Buffer *buffer = NULL;
 static void (*on_recv)(int, void *) = NULL;
@@ -32,7 +33,8 @@ static void *on_recv_data = NULL;
 ISR(USART_RX_vect)
 {
     int byte;
-    while(UCSR0A&(1<<RXC0))
+
+    if(UCSR0A & (1<<RXC0))
     {
         byte = n_usart_read();
 
@@ -54,18 +56,19 @@ public:
     USARTIo(size_t buffer_size)
     {
         buffer = new Buffer(buffer_size);
-        UCSR0B = (UCSR0B & (~(1 << RXCIE0))) | (1 << RXCIE0);
     }
 
     char read()
     {
         char retval;
+        cli();
         UCSR0B = (UCSR0B & (~(1 << RXCIE0))) | (1 << RXCIE0);
-        sei();
+
         while(!buffer->available())
         {
             power_usart0_enable();
             n_delay_sleep(N_DELAY_IDLE);
+            cli();
         }
 
         cli();
@@ -74,6 +77,7 @@ public:
             retval = buffer->getch();
         }
         sei();
+
         return retval;
     }
 
@@ -124,13 +128,31 @@ public:
 
 extern "C"
 {
-    void n_usart_enable_ex(n_usart_bits_t bits, n_usart_parity_t parity, n_usart_stopbit_t stopbit, uint32_t baudrate, double cpuspeed)
+    void n_usart_enable_ex(
+       n_usart_mode_t mode,
+       n_usart_bits_t bits,
+       n_usart_parity_t parity,
+       n_usart_stopbit_t stopbit,
+       uint32_t baudrate,
+       double cpuspeed)
     {
-        UBRR0 = round((cpuspeed / (baudrate * 16UL)) - 1);
+        cli();
+        switch(mode)
+        {
+        case N_USART_MODE_ASYNC:
+            UBRR0 = round((cpuspeed / (baudrate * 16UL)) - 1);
+            break;
+        case N_USART_MODE_SYNC:
+            UBRR0 = round((cpuspeed / (baudrate * 8UL)) - 1);
+            break;
+        }
 
-        UCSR0C = ((bits & 0x3) << 1) | ((parity & 0x3) << 4) | ((stopbit & 0x1) << 3);
-
+        UCSR0C = ((bits & 0x3) << 1) |
+            ((parity & 0x3) << 4) |
+            ((stopbit & 0x1) << 3) |
+            ((mode & 0x3) << 6);
         UCSR0B = (1 << RXEN0) | (1<<TXEN0) | (bits & 0x4);
+        sei();
     }
 
     void n_usart_disable()

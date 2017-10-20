@@ -23,7 +23,7 @@
 #include "config.h"
 #include "io.h"
 
-#define n_usart_enable(bits, parity, baud, stopbit) n_usart_enable_ex(bits, parity, baud, stopbit, F_CPU)
+#define n_usart_enable(mode, bits, parity, baud, stopbit) n_usart_enable_ex(mode, bits, parity, baud, stopbit, F_CPU)
 
 #define n_usart_set_interrupt_flag(rx, tx) \
     do {                                                        \
@@ -36,7 +36,12 @@ extern "C"
 {
 #endif
 
-    void    n_usart_enable_ex(n_usart_bits_t bits, n_usart_parity_t parity, n_usart_stopbit_t stopbit, uint32_t baudrate, double cpuspeed);
+    void    n_usart_enable_ex(n_usart_mode_t mode,
+                              n_usart_bits_t bits,
+                              n_usart_parity_t parity,
+                              n_usart_stopbit_t stopbit,
+                              uint32_t baudrate,
+                              double cpuspeed);
 
     void    n_usart_disable();
     void    n_usart_write(uint8_t byte);

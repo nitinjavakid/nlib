@@ -21,11 +21,14 @@
 #define N_DEBUG_H
 
 #include <io.h>
+#include <stdarg.h>
 
 #ifdef DEBUG
-#define N_DEBUG(fmt, ...) n_debug_printf("nlib: " fmt "\r\n", ##__VA_ARGS__)
+#define N_DEBUG(fmt, ...) n_debug_printf(fmt, ##__VA_ARGS__)
+#define N_VDEBUG(fmt, va) n_debug_vprintf(fmt, va)
 #else
 #define N_DEBUG(fmt, ...) do { } while(0)
+#define N_VDEBUG(fmt, va) do { } while(0)
 #endif
 
 #ifdef __cplusplus
@@ -34,6 +37,7 @@ extern "C"
 #endif
 
     void n_debug_printf(const char *fmt, ...);
+    void n_debug_vprintf(const char *fmt, va_list);
     void n_debug_init(n_io_handle_t);
 
 #ifdef __cplusplus
