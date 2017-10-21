@@ -98,8 +98,7 @@ public:
         char *chbuffer = (char *) buffer;
         while(idx < size)
         {
-            chbuffer[idx] = read();
-            --idx;
+            chbuffer[idx++] = read();
         }
         return size;
     }

@@ -34,22 +34,18 @@ extern "C"
     {
         if(handle == NULL) return;
 
-        cli();
         va_list va;
         va_start(va, fmt);
         n_io_vsprintf(handle, fmt, va);
         va_end(va);
         n_io_printf(handle, "\r\n");
-        sei();
     }
 
     void n_debug_vprintf(const char *fmt, va_list va)
     {
         if(handle == NULL) return;
 
-        cli();
         n_io_vsprintf(handle, fmt, va);
         n_io_printf(handle, "\r\n");
-        sei();
     }
 }

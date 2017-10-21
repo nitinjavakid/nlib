@@ -22,8 +22,11 @@
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 #include <avr/interrupt.h>
+#include <util/delay_basic.h>
+#include <math.h>
 
 volatile static int count = 0;
+static uint32_t fcpu = 0;
 ISR(WDT_vect)
 {
     --count;
@@ -59,4 +62,20 @@ void n_delay_sleep(n_delay_sleep_mode_t mode)
     sleep_cpu();
     sleep_disable();
     sei();
+}
+
+void n_delay_loop(uint32_t ms)
+{
+    uint16_t onems = round(fcpu/1000000) * round(65535 / 262);
+    while(ms)
+    {
+        _delay_loop_2(onems);
+        --ms;
+    }
+}
+
+void n_delay_init(uint32_t f)
+{
+    SMCR |= 0x01;
+    fcpu = f;
 }

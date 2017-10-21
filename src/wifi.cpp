@@ -88,7 +88,7 @@ extern "C"
         return impl->set_network(ip, gateway, netmask);
     }
 
-    n_io_handle_t n_wifi_open_io(n_wifi_t hnd, n_wifi_io_type_t type, const char *ipaddress, int port)
+    n_io_handle_t n_wifi_open_io(n_wifi_t hnd, n_wifi_io_type_t type, const char *ipaddress, int port, size_t buffer_size)
     {
         if(!hnd)
         {
@@ -96,7 +96,7 @@ extern "C"
         }
 
         WIFIImpl *impl = static_cast<WIFIImpl *>(hnd);
-        return impl->open_io(type, ipaddress, port);
+        return impl->open_io(type, ipaddress, port, buffer_size);
     }
 
     int n_wifi_close(n_wifi_t hnd)

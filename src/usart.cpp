@@ -71,7 +71,6 @@ public:
             cli();
         }
 
-        cli();
         if(buffer->available())
         {
             retval = buffer->getch();
@@ -92,8 +91,7 @@ public:
         char *chbuffer = (char *) buffer;
         while(idx < size)
         {
-            chbuffer[idx] = read();
-            --idx;
+            chbuffer[idx++] = read();
         }
         return size;
     }

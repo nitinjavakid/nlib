@@ -24,6 +24,10 @@
 #include <string.h>
 #include <buffer.h>
 #include <debug.h>
+#include <stdio.h>
+#include <delay.h>
+#include <avr/interrupt.h>
+#include <avr/power.h>
 
 class ESP8266Wifi;
 
@@ -32,10 +36,15 @@ class ESP8266Io : public IOImpl
 private:
     ESP8266Wifi *module;
     int linkid;
+    void (*on_recv_ptr)(int, void *) = NULL;
+    void *on_recv_data = NULL;
+    Buffer *buffer = NULL;
+    volatile bool closed;
 public:
-    ESP8266Io(ESP8266Wifi *mod, int id)
-        : module(mod), linkid(id)
+    ESP8266Io(ESP8266Wifi *mod, int id, size_t buffer_size)
+        : module(mod), linkid(id), closed(false)
     {
+        buffer = new Buffer(buffer_size);
     }
 
     char   read();
@@ -44,6 +53,16 @@ public:
     size_t write(const void *buffer, size_t size);
     int    close();
     int    on_recv(void (*)(int, void *), void *);
+    void   inject_byte(int byte);
+    void   mark_closed()
+    {
+        closed = true;
+    }
+
+    ~ESP8266Io()
+    {
+        close();
+    }
 };
 
 class ESP8266Wifi : public WIFIImpl
@@ -52,12 +71,84 @@ class ESP8266Wifi : public WIFIImpl
 private:
     n_io_handle_t usart_handle;
     typedef int (* collector_t)(const char *, void *);
+    ESP8266Io *connections[5];
+
+    const char *recv_filter = "+IPD,";
+    volatile int recv_filter_idx = 0;
+    volatile int recv_connection_idx = -1;
+    volatile int recv_connection_size = 0;
+    volatile char recv_buffer[20];
+    volatile char recv_buffer_idx = 0;
+    const char *close_filter = ".,CLOSED\r\n";
+    volatile int close_filter_idx = 0;
+    volatile char close_filter_var = 0;
 public:
     ESP8266Wifi(n_io_handle_t handle)
         : usart_handle(handle)
     {
         auto recv_handler = [](int ch, void *data) -> void {
-            //            N_DEBUG("Got %d", ch);
+            ESP8266Wifi *wifi = (ESP8266Wifi *) data;
+
+            if(wifi->recv_buffer_idx)
+            {
+                if(ch == ':')
+                {
+                    wifi->recv_buffer[wifi->recv_buffer_idx - 1] = '\0';
+                    sscanf((const char *)wifi->recv_buffer, "%d,%d", &(wifi->recv_connection_idx), &(wifi->recv_connection_size));
+                    wifi->recv_buffer_idx = 0;
+                }
+                else
+                {
+                    wifi->recv_buffer[wifi->recv_buffer_idx - 1] = (char) ch;
+                    ++(wifi->recv_buffer_idx);
+                }
+
+                return;
+            }
+
+            if(wifi->recv_connection_size > 0)
+            {
+                wifi->connections[wifi->recv_connection_idx]->inject_byte(ch);
+                --(wifi->recv_connection_size);
+                return;
+            }
+
+            // Recieve filter
+            if(wifi->recv_filter[wifi->recv_filter_idx] == ch)
+            {
+                ++(wifi->recv_filter_idx);
+            }
+            else
+            {
+                wifi->recv_filter_idx = 0;
+            }
+
+            if(wifi->recv_filter_idx == 5)
+            {
+                wifi->recv_buffer_idx = 1;
+                wifi->recv_filter_idx = 0;
+            }
+
+            // Closed filter
+            if(wifi->close_filter[wifi->close_filter_idx] == '.')
+            {
+                wifi->close_filter_var = ch;
+                ++(wifi->close_filter_idx);
+            }
+            else if(wifi->close_filter[wifi->close_filter_idx] == ch)
+            {
+                ++(wifi->close_filter_idx);
+            }
+            else
+            {
+                wifi->close_filter_idx = 0;
+            }
+
+            if(wifi->close_filter_idx == 10)
+            {
+                wifi->connections[wifi->close_filter_var - '0']->mark_closed();
+                wifi->close_filter_idx = 0;
+            }
         };
         n_io_on_recv(usart_handle, recv_handler, this);
     }
@@ -74,6 +165,8 @@ public:
         {
             return retval;
         }
+
+        n_delay_loop(5000);
 
         exec(NULL, NULL, "AT\r\n");
     }
@@ -95,19 +188,22 @@ public:
             break;
         }
 
-        if((retval = exec(NULL, NULL, "AT+CWMODE=%d\r\n", modeint)) != 0)
+        if((retval = exec(NULL, NULL, "AT+CWMODE_CUR=%d\r\n", modeint)) != 0)
         {
             return retval;
         }
 
-        return exec(NULL, NULL, "AT+CIPMUX=1\r\n");
+        return exec([](const char *line, void *data) -> int {
+                N_DEBUG("Line = %s", line);
+                return 0;
+        }, NULL, "AT+CIPMUX=1\r\n");
     }
 
     int get_mode(n_wifi_mode_t *mode);
 
     int connect(const char *ssid, const char *pwd)
     {
-        return exec(NULL, NULL, "AT+CWJAP=\"%s\",\"%s\"\r\n", ssid, pwd);
+        return exec(NULL, NULL, "AT+CWJAP_CUR=\"%s\",\"%s\"\r\n", ssid, pwd);
     }
 
     int set_network(const char *ip, const char *gateway, const char *netmask)
@@ -115,7 +211,7 @@ public:
         return exec(NULL, NULL, "AT+CIPSTA_CUR=\"%s\",\"%s\",\"%s\"\r\n", ip, gateway, netmask);
     }
 
-    n_io_handle_t open_io(n_wifi_io_type_t type, const char *ip, int port)
+    n_io_handle_t open_io(n_wifi_io_type_t type, const char *ip, int port, size_t buffer_size)
     {
         int idx = -1;
         const char *typestr = NULL;
@@ -131,6 +227,7 @@ public:
             typestr = "SSL";
             break;
         }
+
         for(int i = 0; i < 5; ++i)
         {
             if(exec(NULL, NULL, "AT+CIPSTART=%d,\"%s\",\"%s\",%d\r\n", i, typestr, ip, port) == 0)
@@ -145,7 +242,9 @@ public:
             return NULL;
         }
 
-        return new ESP8266Io(this, idx);
+        connections[idx] = new ESP8266Io(this, idx, buffer_size);
+
+        return connections[idx];
     }
 
     int close()
@@ -158,6 +257,7 @@ public:
 
     ~ESP8266Wifi()
     {
+        close();
     }
 
 private:
@@ -318,7 +418,6 @@ size_t ESP8266Io::write(const void *buffer, size_t size)
             {
                 char buffer[50];
                 n_io_readline(module->usart_handle, buffer, sizeof(buffer));
-                N_DEBUG("send: #%s$", buffer);
                 if(strncmp(buffer, "SEND OK", 7) == 0)
                 {
                     return size;
@@ -336,20 +435,73 @@ size_t ESP8266Io::write(const void *buffer, size_t size)
 
 char ESP8266Io::read()
 {
-    return 'c';
+    char retval;
+    cli();
+    while(!buffer->available())
+    {
+        if(closed)
+        {
+            sei();
+            return -1;
+        }
+        power_usart0_enable();
+        n_delay_sleep(N_DELAY_IDLE);
+        cli();
+    }
+
+    if(buffer->available())
+    {
+        retval = buffer->getch();
+    }
+    sei();
+    return retval;
 }
 
 size_t ESP8266Io::read(void *buffer, size_t size)
 {
-    return size;
+    size_t idx = 0;
+    char *chbuffer = (char *) buffer;
+    while(idx < size)
+    {
+        char ch = read();
+        if(ch != -1)
+        {
+            chbuffer[idx++] = ch;
+        }
+        else
+        {
+            break;
+        }
+    }
+    return idx;
 }
 
 int ESP8266Io::close()
 {
+    if(buffer)
+    {
+        delete buffer;
+        buffer = NULL;
+    }
 }
 
-int ESP8266Io::on_recv(void (*)(int, void*), void*)
+void ESP8266Io::inject_byte(int byte)
 {
+    if(buffer)
+    {
+        buffer->putch(byte);
+    }
+
+    if(on_recv_ptr)
+    {
+        on_recv_ptr(byte, on_recv_data);
+    }
+}
+
+int ESP8266Io::on_recv(void (*func)(int, void*), void *data)
+{
+    on_recv_ptr = func;
+    on_recv_data = data;
 }
 
 extern "C"
