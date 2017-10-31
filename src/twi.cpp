@@ -121,6 +121,11 @@ public:
         on_recv_data = data;
     }
 
+    bool available()
+    {
+        return buffer->available();
+    }
+
     ~TWISlaveIo()
     {
         close();
@@ -223,6 +228,11 @@ public:
 
     int on_recv(void (*func)(int, void *), void *data)
     {
+    }
+
+    bool available()
+    {
+        return buffer->available();
     }
 
     ~TWIMasterIo()

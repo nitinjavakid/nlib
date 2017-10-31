@@ -54,6 +54,11 @@ public:
     int    close();
     int    on_recv(void (*)(int, void *), void *);
     void   inject_byte(int byte);
+    bool   available()
+    {
+        return buffer->available();
+    }
+
     void   mark_closed()
     {
         closed = true;

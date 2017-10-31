@@ -31,6 +31,7 @@ public:
     virtual size_t write(const void *buffer, size_t size) = 0;
     virtual int    close() = 0;
     virtual int    on_recv(void (*)(int, void *), void *) = 0;
+    virtual bool   available() = 0;
     virtual ~IOImpl()
     {
     }

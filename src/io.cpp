@@ -160,4 +160,15 @@ extern "C"
         IOImpl *impl = static_cast<IOImpl *>(handle);
         return impl->on_recv(function, data);
     }
+
+    int n_io_available(n_io_handle_t handle)
+    {
+        if(!handle)
+        {
+            return -1;
+        }
+
+        IOImpl *impl = static_cast<IOImpl *>(handle);
+        return impl->available();
+    }
 }

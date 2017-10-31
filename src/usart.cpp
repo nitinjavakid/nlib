@@ -119,6 +119,11 @@ public:
         on_recv_data = data;
     }
 
+    bool available()
+    {
+        return buffer->available();
+    }
+
     ~USARTIo()
     {
     }
