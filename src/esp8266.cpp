@@ -198,21 +198,30 @@ public:
             return retval;
         }
 
-        return exec([](const char *line, void *data) -> int {
-                N_DEBUG("Line = %s", line);
-                return 0;
-        }, NULL, "AT+CIPMUX=1\r\n");
+        return retval;
     }
 
     int get_mode(n_wifi_mode_t *mode);
 
     int connect(const char *ssid, const char *pwd)
     {
-        return exec(NULL, NULL, "AT+CWJAP_CUR=\"%s\",\"%s\"\r\n", ssid, pwd);
+        return exec([](const char *line, void *data) -> int {
+            if(strncmp(line, "ready", 5) == 0)
+            {
+                return 1;
+            }
+            return 0;
+        }, NULL, "AT+CWJAP_CUR=\"%s\",\"%s\"\r\n", ssid, pwd);
     }
 
     int set_network(const char *ip, const char *gateway, const char *netmask)
     {
+        int retval = 0;
+        if((retval = exec(NULL, NULL, "AT+CIPMUX=1\r\n")) != 0)
+        {
+            return retval;
+        }
+
         return exec(NULL, NULL, "AT+CIPSTA_CUR=\"%s\",\"%s\",\"%s\"\r\n", ip, gateway, netmask);
     }
 
@@ -300,10 +309,11 @@ int ESP8266Wifi::exec(collector_t callback, void *data, const char *fmt, ...)
         {
             if(callback)
             {
-                if(callback(buffer, data))
+                int retval = 0;
+                if((retval = callback(buffer, data)) != 0)
                 {
                     free(buffer);
-                    return 1;
+                    return retval >> 1;
                 }
             }
             free(buffer);
