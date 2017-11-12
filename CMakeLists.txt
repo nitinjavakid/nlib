@@ -53,6 +53,9 @@ install(TARGETS twi.${MCU} ARCHIVE DESTINATION lib)
 add_library(debug.${MCU} "src/debug.cpp")
 install(TARGETS debug.${MCU} ARCHIVE DESTINATION lib)
 
+add_library(http.${MCU} "src/http.cpp")
+install(TARGETS http.${MCU} ARCHIVE DESTINATION lib)
+
 #wifi drivers
 add_library(esp8266.${MCU} "src/esp8266.cpp")
 install(TARGETS esp8266.${MCU} ARCHIVE DESTINATION lib)

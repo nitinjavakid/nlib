@@ -61,6 +61,7 @@ extern "C"
     int n_wifi_connect(n_wifi_t, const char *ssid, const char *password);
     int n_wifi_get_ap_nodes(n_wifi_t, n_wifi_ap_node_t **nodes);
     int n_wifi_free_ap_nodes(n_wifi_t, n_wifi_ap_node_t *nodes);
+    int n_wifi_close(n_wifi_t hnd);
 
     n_io_handle_t n_wifi_open_io(n_wifi_t, n_wifi_io_type_t, const char *, int, size_t);
 

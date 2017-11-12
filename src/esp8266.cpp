@@ -59,7 +59,7 @@ public:
         return buffer->available();
     }
 
-    void   mark_closed()
+    void mark_closed()
     {
         closed = true;
     }
@@ -91,6 +91,7 @@ public:
     ESP8266Wifi(n_io_handle_t handle)
         : usart_handle(handle)
     {
+        memset(connections, 0, sizeof(connections));
         auto recv_handler = [](int ch, void *data) -> void {
             ESP8266Wifi *wifi = (ESP8266Wifi *) data;
 
@@ -113,7 +114,10 @@ public:
 
             if(wifi->recv_connection_size > 0)
             {
-                wifi->connections[wifi->recv_connection_idx]->inject_byte(ch);
+                if(wifi->connections[wifi->recv_connection_idx] != NULL)
+                {
+                    wifi->connections[wifi->recv_connection_idx]->inject_byte(ch);
+                }
                 --(wifi->recv_connection_size);
                 return;
             }
@@ -151,7 +155,10 @@ public:
 
             if(wifi->close_filter_idx == 10)
             {
-                wifi->connections[wifi->close_filter_var - '0']->mark_closed();
+                if(wifi->connections[wifi->close_filter_var - '0'] != NULL)
+                {
+                    wifi->connections[wifi->close_filter_var - '0']->mark_closed();
+                }
                 wifi->close_filter_idx = 0;
             }
         };
@@ -166,7 +173,13 @@ public:
     int restart()
     {
         int retval = 0;
-        if((retval = exec(NULL, NULL, "AT+RST\r\n")) != 0)
+        if((retval = exec([](const char *line, void *data) -> int {
+            if(strncmp(line, "ready", 5) == 0)
+            {
+                return 1;
+            }
+            return 0;
+        }, NULL, "AT+RST\r\n")) != 0)
         {
             return retval;
         }
@@ -198,6 +211,11 @@ public:
             return retval;
         }
 
+        if((retval = exec(NULL, NULL, "AT+CIPMUX=1\r\n")) != 0)
+        {
+            return retval;
+        }
+
         return retval;
     }
 
@@ -216,12 +234,6 @@ public:
 
     int set_network(const char *ip, const char *gateway, const char *netmask)
     {
-        int retval = 0;
-        if((retval = exec(NULL, NULL, "AT+CIPMUX=1\r\n")) != 0)
-        {
-            return retval;
-        }
-
         return exec(NULL, NULL, "AT+CIPSTA_CUR=\"%s\",\"%s\",\"%s\"\r\n", ip, gateway, netmask);
     }
 
@@ -268,6 +280,17 @@ public:
     int get_ap_nodes(n_wifi_ap_node_t **nodes);
 
     int free_ap_nodes(n_wifi_ap_node_t *nodes);
+
+    int close_connection(n_io_handle_t handle)
+    {
+        for(int idx = 0; idx < (sizeof(connections)/sizeof(connections[0])); ++idx)
+        {
+            if(connections[idx] == handle)
+            {
+                connections[idx] = NULL;
+            }
+        }
+    }
 
     ~ESP8266Wifi()
     {
@@ -425,6 +448,8 @@ void ESP8266Io::write(char ch)
 
 size_t ESP8266Io::write(const void *buffer, size_t size)
 {
+    N_DEBUG("Sending: %d", (int) size);
+
     if(module->exec(NULL, NULL, "AT+CIPSEND=%d,%d\r\n", linkid, size) == 0)
     {
         if(n_io_write(module->usart_handle, buffer, size) == size)
@@ -493,6 +518,7 @@ size_t ESP8266Io::read(void *buffer, size_t size)
 
 int ESP8266Io::close()
 {
+    module->close_connection(this);
     if(buffer)
     {
         delete buffer;

@@ -71,9 +71,8 @@ extern "C"
     void n_io_vsprintf(n_io_handle_t handle, const char *fmt, va_list ap)
     {
         char *str = NULL;
-        int len = 0;
-        len = vsnprintf(NULL, 0, fmt, ap);
-        str = (char *) calloc(len + 1, 1);
+        int len = vsnprintf(NULL, 0, fmt, ap);
+        str = (char *) malloc((len + 1) * sizeof(str));
         len = vsnprintf(str, len + 1, fmt, ap);
         n_io_write(handle, str, len);
         free(str);
@@ -109,7 +108,7 @@ extern "C"
         {
             buffer[idx++] = ch;
 
-            if(idx == size - 1)
+            if(idx == (size - 1))
             {
                 if(internal)
                 {
@@ -128,7 +127,7 @@ extern "C"
             }
         }
 
-        if(idx < size - 1)
+        if(idx < (size - 1))
         {
             buffer[idx++] = '\n';
         }

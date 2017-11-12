@@ -20,13 +20,16 @@
 #ifndef N_BUFFER_H
 #define N_BUFFER_H
 
+#include <debug.h>
+#include <avr/interrupt.h>
+
 class Buffer
 {
 public:
     Buffer(size_t bufsize)
         : size(bufsize)
     {
-        buffer = (int *) malloc(size * sizeof(int));
+        buffer = (char *) malloc(size * sizeof(char));
         ridx = 0;
         widx = 0;
         datacount = 0;
@@ -35,11 +38,15 @@ public:
     void putch(int byte)
     {
         if(datacount == size)
+        {
             return;
+        }
 
+        cli();
         buffer[widx] = byte;
         widx = (widx + 1) % size;
         ++datacount;
+        sei();
     }
 
     size_t available()
@@ -49,19 +56,23 @@ public:
 
     int getch()
     {
+        cli();
         char retval = buffer[ridx];
         ridx = (ridx + 1) % size;
         --datacount;
+        sei();
         return retval;
     }
 
     ~Buffer()
     {
+        N_DEBUG("Deleting buffer %d", *(int *)(buffer - 2));
         free(buffer);
+        N_DEBUG("Deleted buffer");
     }
 
 private:
-    int   *buffer;
+    char    *buffer;
     volatile size_t size;
     volatile size_t widx;
     volatile size_t ridx;
