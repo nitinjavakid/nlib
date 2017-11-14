@@ -31,6 +31,7 @@ private:
     char *values[10];
 public:
     HeaderContainer()
+        : idx(0)
     {
         reset();
     }
@@ -40,14 +41,33 @@ public:
         for(int i = 0; i < idx; ++i)
         {
             free(names[i]);
-            free(values[i]);
+
+            if(values[i])
+            {
+                free(values[i]);
+            }
         }
     }
 
-    void reset()
+    virtual void reset()
     {
+        for(int i = 0; i < idx; ++i)
+        {
+            if(names[i])
+            {
+                free(names[i]);
+                names[i] = NULL;
+            }
+
+            if(values[i])
+            {
+                free(values[i]);
+                names[i] = NULL;
+            }
+        }
         idx = 0;
     }
+
     void set_header(const char *name, const char *value);
     const char *get_header(const char *name);
     unsigned int count()
@@ -87,7 +107,8 @@ void HeaderContainer::set_header(const char *name_str, const char *value_str)
     }
 
     names[idx] = strdup(name_str);
-    values[idx] = strdup(value_str);
+
+    values[idx] = value_str ? strdup(value_str) : NULL;
     ++idx;
 }
 
@@ -130,6 +151,21 @@ void HeaderContainer::read_from_stream(IOImpl *io)
 
         *ptr = '\0';
 
+        int i = 0;
+        for(i = 0; i < idx; ++i)
+        {
+            if(strcasecmp(line, name(i)) == 0)
+            {
+                break;
+            }
+        }
+
+        if(i >= idx)
+        {
+            free(line);
+            continue;
+        }
+
         char *value = (ptr + 2);
         ptr = strchr(value, '\r');
         if(ptr == NULL)
@@ -140,7 +176,7 @@ void HeaderContainer::read_from_stream(IOImpl *io)
 
         *ptr = '\0';
 
-        set_header(line, value);
+        values[i] = strdup(value);
 
         free(line);
     }
@@ -150,7 +186,10 @@ void HeaderContainer::write_to_stream(IOImpl *io)
 {
     for(int i = 0; i < idx; ++i)
     {
-        n_io_printf(io, "%s: %s\r\n", name(i), value(i));
+        if(value(i))
+        {
+            n_io_printf(io, "%s: %s\r\n", name(i), value(i));
+        }
     }
 
     n_io_printf(io, "\r\n");
@@ -159,15 +198,33 @@ void HeaderContainer::write_to_stream(IOImpl *io)
 class HTTPRequest : public HeaderContainer
 {
     char method[10];
-    char uri[10];
+    char *uri;
+    char version[10];
+    n_http_request_line_func_t line_func;
+    void                      *line_data;
 public:
     HTTPRequest()
+        : uri(NULL)
     {
+    }
+
+    void reset()
+    {
+        line_func = NULL;
+        line_data = NULL;
+
+        HeaderContainer::reset();
+    }
+
+    void set_line_func(n_http_request_line_func_t func, void *data)
+    {
+        line_func = func;
+        line_data = data;
     }
 
     void set_uri(const char *uri_str)
     {
-        strcpy(uri, uri_str);
+        uri = strdup(uri_str);
     }
 
     const char *get_uri()
@@ -185,8 +242,26 @@ public:
         return method;
     }
 
+    void set_version(const char *version_str)
+    {
+        strcpy(version, version_str);
+    }
+
+    const char *get_version()
+    {
+        return version;
+    }
+
     void read_from_stream(IOImpl *);
     void write_to_stream(IOImpl *);
+
+    ~HTTPRequest()
+    {
+        if(uri)
+        {
+            free(uri);
+        }
+    }
 };
 
 void HTTPRequest::read_from_stream(IOImpl *io)
@@ -217,8 +292,14 @@ void HTTPRequest::read_from_stream(IOImpl *io)
 
     set_method(line);
     set_uri(line + strlen(method) + 1);
+    set_version(line + strlen(method) + + 1 + strlen(uri) + 1);
 
     free(line);
+
+    if(line_func)
+    {
+        line_func(method, uri, version, line_data);
+    }
 
     HeaderContainer::read_from_stream(io);
 }
@@ -233,9 +314,26 @@ void HTTPRequest::write_to_stream(IOImpl *io)
 class HTTPResponse : public HeaderContainer
 {
     unsigned int status;
+    char version[10];
+    n_http_response_line_func_t line_func;
+    void                       *line_data;
 public:
     HTTPResponse()
     {
+    }
+
+    void reset()
+    {
+        line_func = NULL;
+        line_data = NULL;
+
+        HeaderContainer::reset();
+    }
+
+    void set_line_func(n_http_response_line_func_t func, void *data)
+    {
+        line_func = func;
+        line_data = data;
     }
 
     void set_status(unsigned int status_int)
@@ -246,6 +344,16 @@ public:
     unsigned int get_status()
     {
         return status;
+    }
+
+    void set_version(const char *version_str)
+    {
+        strcpy(version, version_str);
+    }
+
+    const char *get_version()
+    {
+        return version;
     }
 
     void read_from_stream(IOImpl *);
@@ -267,6 +375,8 @@ void HTTPResponse::read_from_stream(IOImpl *io)
         return;
     }
 
+    *ptr = '\0';
+
     char *status_str = ptr + 1;
     ptr = strchr(ptr + 1, ' ');
     if(ptr == NULL)
@@ -277,9 +387,15 @@ void HTTPResponse::read_from_stream(IOImpl *io)
 
     *ptr = '\0';
 
+    set_version(line);
     set_status(atoi(status_str));
 
     free(line);
+
+    if(line_func)
+    {
+        line_func(version, status, line_data);
+    }
 
     HeaderContainer::read_from_stream(io);
 }
@@ -389,9 +505,39 @@ extern "C"
         return new HTTPResponse();
     }
 
-    void n_http_destroy(n_http_object_t obj)
+    void n_http_reset_object(n_http_object_t obj)
+    {
+        if(obj == NULL)
+        {
+            return;
+        }
+
+        static_cast<HeaderContainer *>(obj)->reset();
+    }
+
+    void n_http_free_object(n_http_object_t obj)
     {
         delete static_cast<HeaderContainer *>(obj);
+    }
+
+    void n_http_request_set_line_func(n_http_request_t request, n_http_request_line_func_t func, void *data)
+    {
+        if(request == NULL)
+        {
+            return;
+        }
+
+        static_cast<HTTPRequest *>(request)->set_line_func(func, data);
+    }
+
+    void n_http_response_set_line_func(n_http_response_t response, n_http_response_line_func_t func, void *data)
+    {
+        if(response == NULL)
+        {
+            return;
+        }
+
+        static_cast<HTTPResponse *>(response)->set_line_func(func, data);
     }
 
     void n_http_request_read_from_stream(n_http_request_t req, n_io_handle_t io)

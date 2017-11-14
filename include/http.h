@@ -31,9 +31,18 @@ extern "C"
     typedef n_http_object_t n_http_request_t;
     typedef n_http_object_t n_http_response_t;
 
+    typedef void (*n_http_request_line_func_t)(const char *method, const char *uri, const char *version, void *data);
+
+    typedef void (*n_http_response_line_func_t)(const char *version, int status, void *data);
+
     n_http_request_t  n_http_new_request();
     n_http_response_t n_http_new_response();
-    void n_http_destroy(n_http_object_t);
+
+    void n_http_reset_object(n_http_object_t);
+    void n_http_free_object(n_http_object_t);
+
+    void n_http_request_set_line_func(n_http_request_t, n_http_request_line_func_t func, void *data);
+    void n_http_response_set_line_func(n_http_response_t, n_http_response_line_func_t func, void *data);
 
     void n_http_request_read_from_stream(n_http_request_t, n_io_handle_t);
     void n_http_response_read_from_stream(n_http_response_t, n_io_handle_t);
