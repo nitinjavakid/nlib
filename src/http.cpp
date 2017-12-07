@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <debug.h>
+#include <avr/pgmspace.h>
 
 class HeaderContainer
 {
@@ -400,89 +401,89 @@ void HTTPResponse::read_from_stream(IOImpl *io)
     HeaderContainer::read_from_stream(io);
 }
 
-static const char *code_to_str(unsigned int status)
+static const PROGMEM char *code_to_str(unsigned int status)
 {
-    /*    switch(status)
+    switch(status)
     {
     case 100:
-        return "Continue";
+        return PSTR("Continue");
     case 200:
-        return "OK";
+        return PSTR("OK");
     case 201:
-        return "Created";
+        return PSTR("Created");
     case 202:
-        return "Accepted";
+        return PSTR("Accepted");
     case 203:
-        return "Non-Authoritative Information";
+        return PSTR("Non-Authoritative Information");
     case 204:
-        return "No Content";
+        return PSTR("No Content");
     case 205:
-        return "Reset Content";
+        return PSTR("Reset Content");
     case 206:
-        return "Partial Content";
+        return PSTR("Partial Content");
     case 300:
-        return "Multiple Choices";
+        return PSTR("Multiple Choices");
     case 301:
-        return "Moved Permanently";
+        return PSTR("Moved Permanently");
     case 302:
-        return "Found";
+        return PSTR("Found");
     case 303:
-        return "See Other";
+        return PSTR("See Other");
     case 304:
-        return "Not Modified";
+        return PSTR("Not Modified");
     case 305:
-        return "Use Proxy";
+        return PSTR("Use Proxy");
     case 307:
-        return "Temporary Redirect";
+        return PSTR("Temporary Redirect");
     case 400:
-        return "Bad Request";
+        return PSTR("Bad Request");
     case 401:
-        return "Unauthorized";
+        return PSTR("Unauthorized");
     case 402:
-        return "Payment Required";
+        return PSTR("Payment Required");
     case 403:
-        return "Forbidden";
+        return PSTR("Forbidden");
     case 404:
-        return "Not Found";
+        return PSTR("Not Found");
     case 405:
-        return "Method Not Allowed";
+        return PSTR("Method Not Allowed");
     case 406:
-        return "Not Acceptable";
+        return PSTR("Not Acceptable");
     case 407:
-        return "Proxy Authentication Required";
+        return PSTR("Proxy Authentication Required");
     case 408:
-        return "Request Time-out";
+        return PSTR("Request Time-out");
     case 409:
-        return "Conflict";
+        return PSTR("Conflict");
     case 410:
-        return "Gone";
+        return PSTR("Gone");
     case 411:
-        return "Length Required";
+        return PSTR("Length Required");
     case 412:
-        return "Precondition Failed";
+        return PSTR("Precondition Failed");
     case 413:
-        return "Request Entity Too Large";
+        return PSTR("Request Entity Too Large");
     case 414:
-        return "Request-URI Too Large";
+        return PSTR("Request-URI Too Large");
     case 415:
-        return "Unsupported Media Type";
+        return PSTR("Unsupported Media Type");
     case 416:
-        return "Requested range not satisfiable";
+        return PSTR("Requested range not satisfiable");
     case 417:
-        return "Expectation Failed";
+        return PSTR("Expectation Failed");
     case 500:
-        return "Internal Server Error";
+        return PSTR("Internal Server Error");
     case 501:
-        return "Not Implemented";
+        return PSTR("Not Implemented");
     case 502:
-        return "Bad Gateway";
+        return PSTR("Bad Gateway");
     case 503:
-        return "Service Unavailable";
+        return PSTR("Service Unavailable");
     case 504:
-        return "Gateway Time-out";
+        return PSTR("Gateway Time-out");
     case 505:
-        return "HTTP Version not supported";
-        } */
+        return PSTR("HTTP Version not supported");
+    }
     return NULL;
 }
 

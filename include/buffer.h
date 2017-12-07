@@ -66,9 +66,7 @@ public:
 
     ~Buffer()
     {
-        N_DEBUG("Deleting buffer %d", *(int *)(buffer - 2));
         free(buffer);
-        N_DEBUG("Deleted buffer");
     }
 
 private:
