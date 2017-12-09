@@ -63,7 +63,7 @@ public:
             if(values[i])
             {
                 free(values[i]);
-                names[i] = NULL;
+                values[i] = NULL;
             }
         }
         idx = 0;
@@ -177,6 +177,10 @@ void HeaderContainer::read_from_stream(IOImpl *io)
 
         *ptr = '\0';
 
+        if(values[i] != NULL)
+        {
+            free(values[i]);
+        }
         values[i] = strdup(value);
 
         free(line);

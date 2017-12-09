@@ -21,6 +21,7 @@
 #include <io_impl.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <debug.h>
 
 extern "C"
 {
@@ -97,8 +98,13 @@ extern "C"
         if(buffer == NULL)
         {
             internal = true;
-            buffer = (char *) malloc(50);
-            size = 50;
+            buffer = (char *) malloc(30);
+            if(buffer == NULL)
+            {
+                N_DEBUG("Unable to allocate");
+                return NULL;
+            }
+            size = 30;
         }
 
         int idx = 0;

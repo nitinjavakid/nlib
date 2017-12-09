@@ -448,24 +448,24 @@ void ESP8266Io::write(char ch)
 
 size_t ESP8266Io::write(const void *buffer, size_t size)
 {
-    N_DEBUG("Sending: %d", (int) size);
-
     if(module->exec(NULL, NULL, "AT+CIPSEND=%d,%d\r\n", linkid, size) == 0)
     {
         if(n_io_write(module->usart_handle, buffer, size) == size)
         {
             while(1)
             {
-                char buffer[50];
-                n_io_readline(module->usart_handle, buffer, sizeof(buffer));
-                if(strncmp(buffer, "SEND OK", 7) == 0)
+                char *linebuf = n_io_readline(module->usart_handle, NULL, 0);
+                if(strncmp(linebuf, "SEND OK", 7) == 0)
                 {
+                    free(linebuf);
                     return size;
                 }
-                else if(strncmp(buffer, "ERROR", 5) == 0)
+                else if(strncmp(linebuf, "ERROR", 5) == 0)
                 {
+                    free(linebuf);
                     return -1;
                 }
+                free(linebuf);
             }
         }
     }

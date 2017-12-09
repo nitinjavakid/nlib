@@ -30,14 +30,17 @@ extern "C"
         handle = hdl;
     }
 
-    void n_debug_printf(const char *fmt, ...)
+    void n_debug_printf(const PROGMEM char *fmt, ...)
     {
         if(handle == NULL) return;
 
+        char *fmtram = (char *) malloc(strlen_P(fmt) + 1);
+        memcpy_P(fmtram, fmt, strlen_P(fmt) + 1);
         va_list va;
         va_start(va, fmt);
-        n_io_vsprintf(handle, fmt, va);
+        n_io_vsprintf(handle, fmtram, va);
         va_end(va);
+        free(fmtram);
         n_io_printf(handle, "\r\n");
     }
 

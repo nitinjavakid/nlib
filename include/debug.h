@@ -22,9 +22,10 @@
 
 #include <io.h>
 #include <stdarg.h>
+#include <avr/pgmspace.h>
 
 #ifdef DEBUG
-#define N_DEBUG(fmt, ...) n_debug_printf(fmt, ##__VA_ARGS__)
+#define N_DEBUG(fmt, ...) n_debug_printf(PSTR(fmt), ##__VA_ARGS__)
 #define N_VDEBUG(fmt, va) n_debug_vprintf(fmt, va)
 #else
 #define N_DEBUG(fmt, ...) do { } while(0)
@@ -36,7 +37,7 @@ extern "C"
 {
 #endif
 
-    void n_debug_printf(const char *fmt, ...);
+    void n_debug_printf(const PROGMEM char *fmt, ...);
     void n_debug_vprintf(const char *fmt, va_list);
     void n_debug_init(n_io_handle_t);
 
