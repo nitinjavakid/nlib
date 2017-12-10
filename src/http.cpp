@@ -325,6 +325,7 @@ class HTTPResponse : public HeaderContainer
 public:
     HTTPResponse()
     {
+        reset();
     }
 
     void reset()

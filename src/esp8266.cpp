@@ -36,13 +36,17 @@ class ESP8266Io : public IOImpl
 private:
     ESP8266Wifi *module;
     int linkid;
-    void (*on_recv_ptr)(int, void *) = NULL;
-    void *on_recv_data = NULL;
-    Buffer *buffer = NULL;
+    Buffer *buffer;
     volatile bool closed;
+    void (*on_recv_ptr)(int, void *);
+    void *on_recv_data;
 public:
     ESP8266Io(ESP8266Wifi *mod, int id, size_t buffer_size)
-        : module(mod), linkid(id), closed(false)
+        : module(mod),
+          linkid(id),
+          closed(false),
+          on_recv_ptr(NULL),
+          on_recv_data(NULL)
     {
         buffer = new Buffer(buffer_size);
     }
@@ -79,19 +83,26 @@ private:
     ESP8266Io *connections[5];
 
     const char *recv_filter = "+IPD,";
-    volatile int recv_filter_idx = 0;
-    volatile int recv_connection_idx = -1;
-    volatile int recv_connection_size = 0;
+    volatile int recv_filter_idx;
+    volatile int recv_connection_idx;
+    volatile int recv_connection_size;
     volatile char recv_buffer[20];
-    volatile char recv_buffer_idx = 0;
+    volatile char recv_buffer_idx;
     const char *close_filter = ".,CLOSED\r\n";
-    volatile int close_filter_idx = 0;
-    volatile char close_filter_var = 0;
+    volatile int close_filter_idx;
+    volatile char close_filter_var;
 public:
     ESP8266Wifi(n_io_handle_t handle)
-        : usart_handle(handle)
+        : usart_handle(handle),
+          recv_filter_idx(0),
+          recv_connection_idx(0),
+          recv_connection_size(0),
+          recv_buffer_idx(0),
+          close_filter_idx(0),
+          close_filter_var(0)
     {
         memset(connections, 0, sizeof(connections));
+        memset((void *)recv_buffer, 0, sizeof(recv_buffer));
         auto recv_handler = [](int ch, void *data) -> void {
             ESP8266Wifi *wifi = (ESP8266Wifi *) data;
 
@@ -275,6 +286,13 @@ public:
 
     int close()
     {
+        for(int idx = 0; idx < (sizeof(connections)/sizeof(connections[0])); ++idx)
+        {
+            if(connections[idx] != NULL)
+            {
+                n_io_close(connections[idx]);
+            }
+        }
     }
 
     int get_ap_nodes(n_wifi_ap_node_t **nodes);
@@ -290,6 +308,7 @@ public:
                 connections[idx] = NULL;
             }
         }
+        return 0;
     }
 
     ~ESP8266Wifi()
@@ -518,12 +537,14 @@ size_t ESP8266Io::read(void *buffer, size_t size)
 
 int ESP8266Io::close()
 {
+    cli();
     module->close_connection(this);
     if(buffer)
     {
         delete buffer;
         buffer = NULL;
     }
+    sei();
 }
 
 void ESP8266Io::inject_byte(int byte)

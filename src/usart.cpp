@@ -109,7 +109,14 @@ public:
     int close()
     {
         cli();
-        delete buffer;
+        if(buffer != NULL)
+        {
+            delete buffer;
+        }
+
+        buffer = NULL;
+        ::on_recv = NULL;
+        on_recv_data = NULL;
         sei();
     }
 
