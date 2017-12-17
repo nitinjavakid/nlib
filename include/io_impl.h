@@ -32,6 +32,9 @@ public:
     virtual int    close() = 0;
     virtual int    on_recv(void (*)(int, void *), void *) = 0;
     virtual bool   available() = 0;
+    virtual void flush()
+    {
+    }
     virtual ~IOImpl()
     {
     }

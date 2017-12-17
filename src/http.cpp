@@ -211,6 +211,7 @@ public:
     HTTPRequest()
         : uri(NULL)
     {
+        reset();
     }
 
     void reset()

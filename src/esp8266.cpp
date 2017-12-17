@@ -40,13 +40,19 @@ private:
     volatile bool closed;
     void (*on_recv_ptr)(int, void *);
     void *on_recv_data;
+    char *writebuffer;
+    size_t writebuffer_written;
+    size_t writebuffer_size;
 public:
     ESP8266Io(ESP8266Wifi *mod, int id, size_t buffer_size)
         : module(mod),
           linkid(id),
           closed(false),
           on_recv_ptr(NULL),
-          on_recv_data(NULL)
+          on_recv_data(NULL),
+          writebuffer(NULL),
+          writebuffer_written(0),
+          writebuffer_size(0)
     {
         buffer = new Buffer(buffer_size);
     }
@@ -60,9 +66,10 @@ public:
     void   inject_byte(int byte);
     bool   available()
     {
-        return buffer->available();
+        return (buffer->available() > 0);
     }
 
+    void   flush();
     void mark_closed()
     {
         closed = true;
@@ -88,7 +95,7 @@ private:
     volatile int recv_connection_size;
     volatile char recv_buffer[20];
     volatile char recv_buffer_idx;
-    const char *close_filter = ".,CLOSED\r\n";
+    const char *close_filter = ".,CLOSED";
     volatile int close_filter_idx;
     volatile char close_filter_var;
 public:
@@ -101,7 +108,7 @@ public:
           close_filter_idx(0),
           close_filter_var(0)
     {
-        memset(connections, 0, sizeof(connections));
+        memset(&connections, 0, sizeof(connections));
         memset((void *)recv_buffer, 0, sizeof(recv_buffer));
         auto recv_handler = [](int ch, void *data) -> void {
             ESP8266Wifi *wifi = (ESP8266Wifi *) data;
@@ -111,7 +118,8 @@ public:
                 if(ch == ':')
                 {
                     wifi->recv_buffer[wifi->recv_buffer_idx - 1] = '\0';
-                    sscanf((const char *)wifi->recv_buffer, "%d,%d", &(wifi->recv_connection_idx), &(wifi->recv_connection_size));
+                    sscanf((char *)wifi->recv_buffer, "%d,%d", &(wifi->recv_connection_idx), &(wifi->recv_connection_size));
+
                     wifi->recv_buffer_idx = 0;
                 }
                 else
@@ -120,6 +128,7 @@ public:
                     ++(wifi->recv_buffer_idx);
                 }
 
+                wifi->close_filter_idx = 0;
                 return;
             }
 
@@ -130,6 +139,7 @@ public:
                     wifi->connections[wifi->recv_connection_idx]->inject_byte(ch);
                 }
                 --(wifi->recv_connection_size);
+                wifi->close_filter_idx = 0;
                 return;
             }
 
@@ -143,7 +153,7 @@ public:
                 wifi->recv_filter_idx = 0;
             }
 
-            if(wifi->recv_filter_idx == 5)
+            if(wifi->recv_filter[wifi->recv_filter_idx] == '\0')
             {
                 wifi->recv_buffer_idx = 1;
                 wifi->recv_filter_idx = 0;
@@ -164,7 +174,7 @@ public:
                 wifi->close_filter_idx = 0;
             }
 
-            if(wifi->close_filter_idx == 10)
+            if(wifi->close_filter[wifi->close_filter_idx] == '\0')
             {
                 if(wifi->connections[wifi->close_filter_var - '0'] != NULL)
                 {
@@ -197,7 +207,7 @@ public:
 
         n_delay_loop(5000);
 
-        exec(NULL, NULL, "AT\r\n");
+        exec(NULL, NULL, "ATE0\r\n");
     }
 
     int set_mode(n_wifi_mode_t mode)
@@ -305,6 +315,7 @@ public:
         {
             if(connections[idx] == handle)
             {
+                exec(NULL, NULL, "AT+CIPCLOSE=%d\r\n", idx);
                 connections[idx] = NULL;
             }
         }
@@ -462,39 +473,81 @@ int ESP8266Wifi::free_ap_nodes(n_wifi_ap_node_t *nodes)
 
 void ESP8266Io::write(char ch)
 {
-    write(&ch, 1);
+    if(writebuffer == NULL)
+    {
+        writebuffer = (char *) malloc(10);
+        writebuffer_size = 10;
+        writebuffer_written = 0;
+    }
+
+    if(writebuffer_written == writebuffer_size)
+    {
+        writebuffer = (char *) realloc(writebuffer, writebuffer_size + 10);
+        writebuffer_size = writebuffer_size + 10;
+    }
+
+    writebuffer[writebuffer_written++] = ch;
+}
+
+void ESP8266Io::flush()
+{
+    if(writebuffer && (writebuffer_size > 0))
+    {
+        if(module->exec(NULL, NULL, "AT+CIPSEND=%d,%d\r\n", linkid, writebuffer_written) == 0)
+        {
+            if(n_io_write(module->usart_handle, writebuffer, writebuffer_written) == writebuffer_written)
+            {
+                free(writebuffer);
+                writebuffer = NULL;
+                writebuffer_size = 0;
+                writebuffer_written = 0;
+
+                while(1)
+                {
+                    char *linebuf = n_io_readline(module->usart_handle, NULL, 0);
+                    if(strncmp(linebuf, "SEND OK", 7) == 0)
+                    {
+                        free(linebuf);
+                        return;
+                    }
+                    else if(strncmp(linebuf, "ERROR", 5) == 0)
+                    {
+                        free(linebuf);
+                        return;
+                    }
+                    free(linebuf);
+                }
+            }
+            else
+            {
+                free(writebuffer);
+                writebuffer = NULL;
+                writebuffer_size = 0;
+                writebuffer_written = 0;
+            }
+        }
+        else
+        {
+            free(writebuffer);
+            writebuffer = NULL;
+            writebuffer_size = 0;
+            writebuffer_written = 0;
+        }
+    }
 }
 
 size_t ESP8266Io::write(const void *buffer, size_t size)
 {
-    if(module->exec(NULL, NULL, "AT+CIPSEND=%d,%d\r\n", linkid, size) == 0)
+    for(int i = 0; i < size; ++i)
     {
-        if(n_io_write(module->usart_handle, buffer, size) == size)
-        {
-            while(1)
-            {
-                char *linebuf = n_io_readline(module->usart_handle, NULL, 0);
-                if(strncmp(linebuf, "SEND OK", 7) == 0)
-                {
-                    free(linebuf);
-                    return size;
-                }
-                else if(strncmp(linebuf, "ERROR", 5) == 0)
-                {
-                    free(linebuf);
-                    return -1;
-                }
-                free(linebuf);
-            }
-        }
+        write(((char *) buffer)[i]);
     }
-
-    return -1;
+    return size;
 }
 
 char ESP8266Io::read()
 {
-    char retval;
+    char retval = -1;
     cli();
     while(!buffer->available())
     {
@@ -543,6 +596,11 @@ int ESP8266Io::close()
     {
         delete buffer;
         buffer = NULL;
+    }
+    if(writebuffer)
+    {
+        free(writebuffer);
+        writebuffer = NULL;
     }
     sei();
 }

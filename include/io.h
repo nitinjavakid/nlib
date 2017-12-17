@@ -41,6 +41,7 @@ extern "C"
     int    n_io_close(n_io_handle_t);
     int    n_io_on_recv(n_io_handle_t, void (*)(int ch, void *), void *data);
     int    n_io_available(n_io_handle_t);
+    void   n_io_flush(n_io_handle_t);
 
 #ifdef __cplusplus
 }

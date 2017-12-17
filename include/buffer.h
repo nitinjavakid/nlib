@@ -69,8 +69,8 @@ public:
         free(buffer);
     }
 
-private:
     char    *buffer;
+private:
     volatile size_t size;
     volatile size_t widx;
     volatile size_t ridx;

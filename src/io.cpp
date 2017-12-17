@@ -74,9 +74,12 @@ extern "C"
         char *str = NULL;
         int len = vsnprintf(NULL, 0, fmt, ap);
         str = (char *) malloc((len + 1) * sizeof(str));
-        len = vsnprintf(str, len + 1, fmt, ap);
-        n_io_write(handle, str, len);
-        free(str);
+        if(str)
+        {
+            len = vsnprintf(str, len + 1, fmt, ap);
+            n_io_write(handle, str, len);
+            free(str);
+        }
     }
 
     void n_io_printf(n_io_handle_t handle, const char *fmt, ...)
@@ -110,8 +113,14 @@ extern "C"
         int idx = 0;
         char ch;
 
-        while((ch = n_io_getch(handle)) != '\n')
+        while(1)
         {
+            ch = n_io_getch(handle);
+            if(ch == '\n' || ch == -1)
+            {
+                break;
+            }
+
             buffer[idx++] = ch;
 
             if(idx == (size - 1))
@@ -175,5 +184,16 @@ extern "C"
 
         IOImpl *impl = static_cast<IOImpl *>(handle);
         return impl->available();
+    }
+
+    void n_io_flush(n_io_handle_t handle)
+    {
+        if(!handle)
+        {
+            return;
+        }
+
+        IOImpl *impl = static_cast<IOImpl *>(handle);
+        return impl->flush();
     }
 }
