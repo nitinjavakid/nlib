@@ -482,7 +482,15 @@ void ESP8266Io::write(char ch)
 
     if(writebuffer_written == writebuffer_size)
     {
-        writebuffer = (char *) realloc(writebuffer, writebuffer_size + 10);
+        char *newbuffer = (char *) realloc(writebuffer, writebuffer_size + 10);
+        if(newbuffer == NULL)
+        {
+            flush();
+            write(ch);
+            return;
+        }
+
+        writebuffer = newbuffer;
         writebuffer_size = writebuffer_size + 10;
     }
 
