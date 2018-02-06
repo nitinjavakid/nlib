@@ -28,6 +28,7 @@
 #include <delay.h>
 #include <avr/interrupt.h>
 #include <avr/power.h>
+#include <avr/wdt.h>
 
 class ESP8266Wifi;
 
@@ -339,6 +340,9 @@ int ESP8266Wifi::exec(collector_t callback, void *data, const char *fmt, ...)
     n_io_vsprintf(usart_handle, fmt, ap);
     va_end(ap);
 
+    WDTCSR = WDTCSR & ~(1 << WDIE);
+    wdt_enable(WDTO_8S);
+
     do
     {
         char *buffer = n_io_readline(usart_handle, NULL, 0);
@@ -346,16 +350,19 @@ int ESP8266Wifi::exec(collector_t callback, void *data, const char *fmt, ...)
         if(strncmp(buffer, "OK", 2) == 0)
         {
             free(buffer);
+            wdt_reset();
             return 0;
         }
         else if(strncmp(buffer, "ERROR", 5) == 0)
         {
             free(buffer);
+            wdt_reset();
             return -1;
         }
         else if(strncmp(buffer, "FAIL", 4) == 0)
         {
             free(buffer);
+            wdt_reset();
             return -1;
         }
         else
@@ -366,6 +373,7 @@ int ESP8266Wifi::exec(collector_t callback, void *data, const char *fmt, ...)
                 if((retval = callback(buffer, data)) != 0)
                 {
                     free(buffer);
+                    wdt_reset();
                     return retval >> 1;
                 }
             }
