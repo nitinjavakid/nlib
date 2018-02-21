@@ -18,13 +18,25 @@
  */
 
 #include <stdlib.h>
+#ifdef MEMDEBUG
+#include <debug.h>
+#endif
 
 void * operator new(size_t size)
 {
+#ifndef MEMDEBUG
     return malloc(size);
+#else
+    void * ptr = malloc(size);
+    N_DEBUG("m=%u", ptr);
+    return ptr;
+#endif
 }
 
 void operator delete(void * ptr)
 {
+#ifdef MEMDEBUG
+    N_DEBUG("f=%u", ptr);
+#endif
     free(ptr);
 }

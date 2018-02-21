@@ -304,6 +304,8 @@ public:
                 n_io_close(connections[idx]);
             }
         }
+
+        exec(NULL, NULL, "AT+CWQAP\r\n");
     }
 
     int get_ap_nodes(n_wifi_ap_node_t **nodes);
