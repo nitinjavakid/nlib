@@ -25,7 +25,7 @@
 #include <util/delay_basic.h>
 #include <math.h>
 
-volatile static int count = 0;
+volatile static uint32_t count = 0;
 static uint32_t fcpu = 0;
 ISR(WDT_vect)
 {
@@ -33,8 +33,14 @@ ISR(WDT_vect)
     wdt_disable();
 }
 
-void n_delay_wait(int seconds, n_delay_sleep_mode_t mode)
+void n_delay_wait(uint32_t seconds, n_delay_sleep_mode_t mode)
 {
+    uint32_t subseconds = seconds % 8;
+    if(subseconds < 8)
+    {
+        n_delay_loop(subseconds * 1000);
+    }
+
     count = seconds/8;
 
     while(count > 0)

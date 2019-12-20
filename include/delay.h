@@ -29,7 +29,7 @@ extern "C"
 #endif
 
     void n_delay_init(uint32_t fcpu);
-    void n_delay_wait(int seconds, n_delay_sleep_mode_t mode);
+    void n_delay_wait(uint32_t seconds, n_delay_sleep_mode_t mode);
     void n_delay_sleep(n_delay_sleep_mode_t mode);
     void n_delay_loop(uint32_t milliseconds);
 
